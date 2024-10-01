@@ -121,12 +121,13 @@ public class CompraService {
     }
 
     private BigDecimal aplicarDescontos(BigDecimal custoTotal, BigDecimal custoProdutos) {
+        BigDecimal desconto = BigDecimal.ZERO;
         if (custoProdutos.compareTo(BigDecimal.valueOf(1000)) > 0) {
-            custoProdutos = custoProdutos.multiply(BigDecimal.valueOf(0.8));
+            desconto = custoProdutos.multiply(BigDecimal.valueOf(0.2));
         } else if (custoProdutos.compareTo(BigDecimal.valueOf(500)) > 0) {
-            custoProdutos = custoProdutos.multiply(BigDecimal.valueOf(0.9));
+            desconto = custoProdutos.multiply(BigDecimal.valueOf(0.1));
         }
-
-        return custoProdutos.add(custoTotal.subtract(custoProdutos));
+        BigDecimal result = custoTotal.subtract(desconto);
+        return result;
     }
 }

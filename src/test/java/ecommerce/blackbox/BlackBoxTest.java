@@ -4,14 +4,16 @@ import ecommerce.entity.*;
 import ecommerce.service.CarrinhoDeComprasService;
 import ecommerce.service.ClienteService;
 import ecommerce.service.CompraService;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
 import java.math.BigDecimal;
 import java.util.Arrays;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SpringBootTest
 public class BlackBoxTest {
@@ -25,7 +27,6 @@ public class BlackBoxTest {
     @Autowired
     private ClienteService clienteService;
 
-    // Clintes para classe de equivalência referente ao nível
     private Cliente clienteBronze;
     private Cliente clientePrata;
     private Cliente clienteOuro;
@@ -44,107 +45,74 @@ public class BlackBoxTest {
         clienteOuro.setTipo(TipoCliente.OURO);
     }
 
-    // Testes com particionamentos em classes de equivalências e análises de valores limites
-    @Test
-    public void testCarrinhoFreteGratisClienteBronzeLimiteInferior() {
-        // Classe de equivalência para peso (frete grátis) e cliente (bronze)
-        // Análise do valor limite para peso (frete grátis - 5kg)
-        CarrinhoDeCompras carrinhoFreteGratis = criarCarrinho(1L, 400, 1);
-        BigDecimal custoTotal = compraService.calcularCustoTotal(carrinhoFreteGratis, clienteBronze);
-        // Preço dos produtos sem frete
-        assertEquals(0, custoTotal.compareTo(BigDecimal.valueOf(400)));
+    @ParameterizedTest
+    @CsvSource({
+            // Cliente, Peso, Quantidade, Valor, Valor Esperado
+            // Casos para cliente Bronze
+            "'BRONZE', 1, 1, 500, 500",
+            "'BRONZE', 3, 1, 501, 450.9",
+            "'BRONZE', 5, 1, 1001, 800.8",
+            "'BRONZE', 6, 1, 1, 13",
+            "'BRONZE', 8, 1, 1000, 916",
+            "'BRONZE', 10, 1, 9999, 8019.20",
+            "'BRONZE', 11, 1, 500, 544",
+            "'BRONZE', 25, 1, 501, 550.9",
+            "'BRONZE', 50, 1, 1001, 1000.8",
+            "'BRONZE', 51, 1, 1, 358",
+            "'BRONZE', 1000, 1, 1000, 7900",
+            "'BRONZE', 9999, 1, 9999, 77992.2",
+            // Casos para cliente Prata
+            "'PRATA', 1, 1, 500, 500",
+            "'PRATA', 3, 1, 501, 450.9",
+            "'PRATA', 5, 1, 1001, 800.8",
+            "'PRATA', 6, 1, 1, 7",
+            "'PRATA', 8, 1, 1000, 908",
+            "'PRATA', 10, 1, 9999, 8009.2",
+            "'PRATA', 11, 1, 500, 522",
+            "'PRATA', 25, 1, 501, 500.9",
+            "'PRATA', 50, 1, 1001, 900.8",
+            "'PRATA', 51, 1, 1, 179.5",
+            "'PRATA', 1000, 1, 1000, 4400",
+            "'PRATA', 9999, 1, 9999, 42995.7",
+            // Casos para cliente Ouro
+            "'OURO', 1, 1, 500, 500",
+            "'OURO', 3, 1, 501, 450.9",
+            "'OURO', 5, 1, 1001, 800.8",
+            "'OURO', 6, 1, 1, 1",
+            "'OURO', 8, 1, 1000, 900",
+            "'OURO', 10, 1, 9999, 7999.2",
+            "'OURO', 11, 1, 500, 500",
+            "'OURO', 25, 1, 501, 450.9",
+            "'OURO', 50, 1, 1001, 800.8",
+            "'OURO', 51, 1, 1, 1",
+            "'OURO', 1000, 1, 1000, 900",
+            "'OURO', 9999, 1, 9999, 7999.2"
+    })
+    public void testCalculoCustoTotal(String clienteTipo, int peso, Long quantidade, double preco, double valorEsperado) {
+        // Configurando o tipo de cliente com base nos parâmetros do CSV
+        Cliente cliente = getClienteByTipo(clienteTipo);
+
+        // Criando o carrinho de compras
+        CarrinhoDeCompras carrinho = criarCarrinho(quantidade, preco, peso);
+
+        // Calculando o custo total com base no cliente e no carrinho
+        BigDecimal custoTotal = compraService.calcularCustoTotal(carrinho, cliente);
+
+        // Comparando o valor esperado com o valor calculado
+        assertEquals(0, custoTotal.compareTo(BigDecimal.valueOf(valorEsperado)));
     }
 
-    @Test
-    public void testCarrinhoFreteMedioClienteBronzeLimiteSuperior() {
-        // Classe de equivalência para peso (frete médio) e cliente (bronze)
-        // Análise do valor limite para peso (frete médio - 10kg)
-        CarrinhoDeCompras carrinhoFreteMedio = criarCarrinho(1L, 600, 10);
-        BigDecimal custoTotal = compraService.calcularCustoTotal(carrinhoFreteMedio, clienteBronze);
-        // Preço dos produtos + frete (10kg * R$2)
-        assertEquals(0, custoTotal.compareTo(BigDecimal.valueOf(620)));
+    private Cliente getClienteByTipo(String tipo) {
+        switch (tipo) {
+            case "OURO":
+                return clienteOuro;
+            case "PRATA":
+                return clientePrata;
+            case "BRONZE":
+            default:
+                return clienteBronze;
+        }
     }
-
-    @Test
-    public void testCarrinhoFreteAltoClienteBronzeLimiteInferior() {
-        // Classe de equivalência para peso (frete alto) e cliente (bronze)
-        // Análise do valor limite inferior para peso (frete alto - 11kg)
-        CarrinhoDeCompras carrinhoFreteAlto = criarCarrinho(2L, 800, 11);
-        BigDecimal custoTotal = compraService.calcularCustoTotal(carrinhoFreteAlto, clienteBronze);
-        // Verifica o preço + frete (2 * 11kg * R$4)
-        assertEquals(0, custoTotal.compareTo(BigDecimal.valueOf(1688)));
-    }
-
-    @Test
-    public void testCarrinhoFreteSuperAltoClienteBronzeLimiteSuperior() {
-        // Classe de equivalência para peso (frete super alto) e cliente (bronze)
-        // Análise do valor limite inferior para peso (frete super alto - 99999kg, levando em consideração ser o peso máximo e não usando MAX_INT)
-        CarrinhoDeCompras carrinhoFreteSuperAlto = criarCarrinho(1L, 1000, 99999);
-        BigDecimal custoTotal = compraService.calcularCustoTotal(carrinhoFreteSuperAlto, clienteBronze);
-        // Verifica o preço + frete (99999kg * R$7)
-        assertEquals(0, custoTotal.compareTo(BigDecimal.valueOf(700993)));
-    }
-
-    @Test
-    public void testCarrinhoClienteOuroLimiteSuperior() {
-        // Classe de equivalência para cliente Ouro com frete grátis
-        // Análise do valor limite para peso (frete grátis ouro, independente do peso)
-        CarrinhoDeCompras carrinhoFreteGratis = criarCarrinho(1L, 400, 99999);
-        BigDecimal custoTotal = compraService.calcularCustoTotal(carrinhoFreteGratis, clienteOuro);
-        // Verifica se o preço é sem frete (frete grátis para Ouro)
-        assertEquals(0, custoTotal.compareTo(BigDecimal.valueOf(400)));
-    }
-
-    @Test
-    public void testCarrinhoFreteMedioClientePrataLimiteInferior() {
-        // Classe de equivalência para cliente Prata com frete médio
-        // Análise do valor limite inferior para peso (frete médio - 6kg)
-        CarrinhoDeCompras carrinhoFreteMedio = criarCarrinho(1L, 600, 6);
-        BigDecimal custoTotal = compraService.calcularCustoTotal(carrinhoFreteMedio, clientePrata);
-        // Verifica o preço + frete com 50% de desconto (6kg * R$2 * 0.5)
-        assertEquals(0, custoTotal.compareTo(BigDecimal.valueOf(606)));
-    }
-
-    @Test
-    public void testCarrinhoFreteMedioClientePrataLimiteSuperior() {
-        // Classe de equivalência para cliente Prata com frete médio
-        // Análise do valor limite superior para peso (frete médio - 10kg)
-        CarrinhoDeCompras carrinhoFreteMedio = criarCarrinho(1L, 600, 10);
-        BigDecimal custoTotal = compraService.calcularCustoTotal(carrinhoFreteMedio, clientePrata);
-        // Verifica o preço + frete com 50% de desconto (10kg * R$2 * 0.5)
-        assertEquals(0, custoTotal.compareTo(BigDecimal.valueOf(610)));
-    }
-
-    @Test
-    public void testCarrinhoFreteAltoClientePrataLimiteInferior() {
-        // Classe de equivalência para cliente Prata com frete alto
-        // Análise do valor limite inferior para peso (frete alto - 11kg)
-        CarrinhoDeCompras carrinhoFreteAlto = criarCarrinho(1L, 800, 11);
-        BigDecimal custoTotal = compraService.calcularCustoTotal(carrinhoFreteAlto, clientePrata);
-        // Verifica o preço + frete com 50% de desconto (11kg * R$4 * 0.5)
-        assertEquals(0, custoTotal.compareTo(BigDecimal.valueOf(822)));
-    }
-
-    @Test
-    public void testCarrinhoFreteAltoClientePrataLimiteSuperior() {
-        // Classe de equivalência para cliente Prata com frete alto
-        // Análise do valor limite superior para peso (frete alto - 50kg)
-        CarrinhoDeCompras carrinhoFreteAlto = criarCarrinho(1L, 2000, 50);
-        BigDecimal custoTotal = compraService.calcularCustoTotal(carrinhoFreteAlto, clientePrata);
-        // Verifica o preço + frete com 50% de desconto (50kg * R$4 * 0.5)
-        assertEquals(0, custoTotal.compareTo(BigDecimal.valueOf(2100)));
-    }
-
-    @Test
-    public void testCarrinhoFreteSuperAltoClientePrataLimiteInferior() {
-        // Classe de equivalência para cliente Prata com frete super alto
-        // Análise do valor limite inferior para peso (frete super alto - 51kg)
-        CarrinhoDeCompras carrinhoFreteSuperAlto = criarCarrinho(1L, 2500, 51);
-        BigDecimal custoTotal = compraService.calcularCustoTotal(carrinhoFreteSuperAlto, clientePrata);
-        // Verifica o preço + frete com 50% de desconto (51kg * R$7 * 0.5)
-        assertEquals(0, custoTotal.compareTo(BigDecimal.valueOf(2678.50)));
-    }
-
 
     private CarrinhoDeCompras criarCarrinho(Long quantidade, double preco, int peso) {
         Produto produto = new Produto();

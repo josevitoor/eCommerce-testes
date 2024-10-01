@@ -18,7 +18,6 @@ public class PagamentoSimulado implements IPagamentoExternal {
         this.pagamentos = new HashMap<>();
     }
 
-    @Override
     public PagamentoDTO autorizarPagamento(Long clienteId, Double custoTotal) {
         boolean pagamentoAutorizado = new Random().nextDouble() <= 0.9;
         Long transacaoId = new Random().nextLong(1000L);
@@ -32,7 +31,6 @@ public class PagamentoSimulado implements IPagamentoExternal {
         return pagamentoDTO;
     }
 
-    @Override
     public void cancelarPagamento(Long clienteId, Long pagamentoTransacaoId) {
         if (pagamentos.containsKey(pagamentoTransacaoId)) {
             pagamentos.remove(pagamentoTransacaoId);
