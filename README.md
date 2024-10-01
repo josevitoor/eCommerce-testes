@@ -50,3 +50,4 @@ Os testes cobrem os limites inferiores e superiores de cada classe de equivalên
 ### Cobertura de Testes
 
 A verificação de cobertura foi realizada para o CompraService, atingindo 100%. Eesse percentual foi obtido executando em conjunto os testes "WhiteBoxTest" e "BlackBoxTest", pois cada um tem seu foco específico. O relatório HTML pode ser encontrado em `src/test/java/ecommerce/CoverageTestReport/htmlReport`.
+Já os testes do CompraController não foram concluídos devido a erros na execução.
