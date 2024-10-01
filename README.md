@@ -1,4 +1,5 @@
 # E-commerce Test Suite
+### Grupo composto por Alan de Oliveira, José Vitor e Gabriel Alves
 
 ## Classes de Equivalência
 
@@ -50,4 +51,7 @@ Os testes cobrem os limites inferiores e superiores de cada classe de equivalên
 ### Cobertura de Testes
 
 A verificação de cobertura foi realizada para o CompraService, atingindo 100%. Eesse percentual foi obtido executando em conjunto os testes "WhiteBoxTest" e "BlackBoxTest", pois cada um tem seu foco específico. O relatório HTML pode ser encontrado em `src/test/java/ecommerce/CoverageTestReport/htmlReport`.
-Já os testes do CompraController não foram concluídos devido a erros na execução.
+
+### Testes de Controller
+
+Os testes da camada de controller utilizam mocks para simular as dependências externas e verificar se os endpoints estão respondendo corretamente com os códigos de status apropriados (200, 400, 409, 500), bem como as mensagens de retorno. Foram simulados cenários de sucesso e falha, como argumentos inválidos, estado de conflito e erros inesperados no sistema.

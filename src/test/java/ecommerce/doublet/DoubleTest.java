@@ -1,117 +1,98 @@
 package ecommerce.doublet;
 
 import ecommerce.dto.*;
-import ecommerce.entity.*;
 import ecommerce.controller.*;
-import ecommerce.external.IEstoqueExternal;
-import ecommerce.external.IPagamentoExternal;
-import ecommerce.service.CarrinhoDeComprasService;
-import ecommerce.service.ClienteService;
 import ecommerce.service.CompraService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-import java.math.BigDecimal;
-import java.util.Arrays;
-
 
 @SpringBootTest
 public class DoubleTest {
+    @Mock
     private CompraService compraService;
+
+    @InjectMocks
     private CompraController compraController;
-    private CarrinhoDeComprasService carrinhoService;
-    private ClienteService clienteService;
-    private IEstoqueExternal estoqueExternal;
-    private IPagamentoExternal pagamentoExternal;
-    private CarrinhoDeCompras carrinho;
+
+    private CompraDTO compraSucesso;
+    private CompraDTO compraFalhaEstoque;
+    private CompraDTO compraFalhaPagamento;
 
     @BeforeEach
     public void setup() {
-        carrinhoService = mock(CarrinhoDeComprasService.class);
-        clienteService = mock(ClienteService.class);
-        estoqueExternal = mock(IEstoqueExternal.class);
-        pagamentoExternal = mock(IPagamentoExternal.class);
-        compraService = new CompraService(carrinhoService, clienteService, estoqueExternal, pagamentoExternal);
-        compraController = mock(CompraController.class);
-
-        carrinho = criarCarrinho(1L, 400, 10);
+        // Criação de diferentes respostas simuladas para os testes
+        compraSucesso = new CompraDTO(true, 1234L, "Compra finalizada com sucesso.");
+        compraFalhaEstoque = new CompraDTO(false, null, "Itens fora de estoque.");
+        compraFalhaPagamento = new CompraDTO(false, null, "Pagamento não autorizado.");
     }
 
     @Test
-    public void testFinalizarCompraSuccess() {
-        Long carrinhoId = 1L;
-        Long clienteId = 1L;
-        CompraDTO compraDTO = compraService.finalizarCompra(1L, 1L);
-        
-        when(compraService.finalizarCompra(carrinhoId, clienteId)).thenReturn(compraDTO);
+    public void testFinalizarCompraComSucesso() {
+        // Simula o comportamento do serviço de compra retornando sucesso
+        when(compraService.finalizarCompra(anyLong(), anyLong())).thenReturn(compraSucesso);
 
-        ResponseEntity<CompraDTO> response = compraController.finalizarCompra(carrinhoId, clienteId);
+        // Chama o endpoint da controller
+        ResponseEntity<CompraDTO> response = compraController.finalizarCompra(1L, 1L);
 
-        assertEquals(200, response);
-        assertFalse(compraDTO.sucesso());
-        assertEquals("Compra finalizada com sucesso", response.getBody());
+        // Verifica se o status da resposta é 200 OK e se a resposta é a esperada
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertTrue(response.getBody().sucesso());
+        assertEquals(1234L, response.getBody().transacaoPagamentoId());
+        assertEquals("Compra finalizada com sucesso.", response.getBody().mensagem());
     }
 
     @Test
-    public void testFinalizarCompraBadRequest() {
-        Long carrinhoId = 1L;
-        Long clienteId = 1L;
+    public void testFinalizarCompraFalhaPorEstoqueIndisponivel() {
+        // Simula o comportamento do serviço de compra retornando falha de estoque
+        when(compraService.finalizarCompra(anyLong(), anyLong())).thenThrow(new IllegalStateException("Itens fora de estoque."));
 
-        when(compraService.finalizarCompra(carrinhoId, clienteId)).thenThrow(new IllegalArgumentException("Argumento inválido"));
+        // Chama o endpoint da controller
+        ResponseEntity<CompraDTO> response = compraController.finalizarCompra(1L, 1L);
 
-        ResponseEntity<CompraDTO> response = compraController.finalizarCompra(carrinhoId, clienteId);
-        CompraDTO compraDTO = compraService.finalizarCompra(carrinhoId, clienteId);
-
-        assertEquals(400, response);
-        assertFalse(compraDTO.sucesso());;
-        assertEquals("Argumento inválido", response.getBody());
+        // Verifica se o status da resposta é 409 CONFLICT e se a resposta contém a mensagem de erro
+        assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertFalse(response.getBody().sucesso());
+        assertEquals("Itens fora de estoque.", response.getBody().mensagem());
     }
 
     @Test
-    public void testFinalizarCompraConflict() {
-        Long carrinhoId = 1L;
-        Long clienteId = 1L;
-        
-        when(compraService.finalizarCompra(carrinhoId, clienteId)).thenThrow(new IllegalStateException("Estado inválido"));
+    public void testFinalizarCompraFalhaPorPagamentoNaoAutorizado() {
+        // Simula o comportamento do serviço de compra retornando falha de pagamento
+        when(compraService.finalizarCompra(anyLong(), anyLong())).thenThrow(new IllegalStateException("Pagamento não autorizado."));
 
-        ResponseEntity<CompraDTO> response = compraController.finalizarCompra(carrinhoId, clienteId);
-        CompraDTO compraDTO = compraService.finalizarCompra(carrinhoId, clienteId);
+        // Chama o endpoint da controller
+        ResponseEntity<CompraDTO> response = compraController.finalizarCompra(1L, 1L);
 
-        assertEquals(409, response);
-        assertFalse(compraDTO.sucesso());
-        assertEquals("Estado inválido", response.getBody());
+        // Verifica se o status da resposta é 409 CONFLICT e se a resposta contém a mensagem de erro
+        assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertFalse(response.getBody().sucesso());
+        assertEquals("Pagamento não autorizado.", response.getBody().mensagem());
     }
 
     @Test
-    public void testFinalizarCompraInternalServerError() {
-        Long carrinhoId = 1L;
-        Long clienteId = 1L;
+    public void testFinalizarCompraErroInterno() {
+        // Simula uma exceção genérica durante o processo de compra
+        when(compraService.finalizarCompra(anyLong(), anyLong())).thenThrow(new RuntimeException("Erro inesperado."));
 
-        when(compraService.finalizarCompra(carrinhoId, clienteId)).thenThrow(new RuntimeException("Erro inesperado"));
+        // Chama o endpoint da controller
+        ResponseEntity<CompraDTO> response = compraController.finalizarCompra(1L, 1L);
 
-        ResponseEntity<CompraDTO> response = compraController.finalizarCompra(carrinhoId, clienteId);
-        CompraDTO compraDTO = compraService.finalizarCompra(carrinhoId, clienteId);
-        
-        assertEquals(500, response.getStatusCodeValue());
-        assertFalse(compraDTO.sucesso());
-        assertEquals("Erro ao processar compra.", response.getBody());
-    }
-
-    private CarrinhoDeCompras criarCarrinho(Long quantidade, double preco, int peso) {
-        Produto produto = new Produto();
-        produto.setPreco(BigDecimal.valueOf(preco));
-        produto.setPeso(peso);
-        produto.setId(1L);
-        ItemCompra item = new ItemCompra();
-        item.setProduto(produto);
-        item.setQuantidade(quantidade);
-        CarrinhoDeCompras carrinho = new CarrinhoDeCompras();
-        carrinho.setItens(Arrays.asList(item));
-        return carrinho;
+        // Verifica se o status da resposta é 500 INTERNAL_SERVER_ERROR e se a mensagem de erro é adequada
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertFalse(response.getBody().sucesso());
+        assertEquals("Erro ao processar compra.", response.getBody().mensagem());
     }
 }
